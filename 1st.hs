@@ -81,3 +81,66 @@ generateDFAStates (current:queue) visited sigma delta
     where
         -- Compute all possible new DFA states from the current state using sigma
         newStates = [sort $ nub [q2 | q1 <- current, (q1', a, q2) <- delta, q1 == q1' && a == s] | s <- sigma]
+
+
+-- Second homework
+data RegExpr = Epsilon
+             | Symbol Char
+             | Iteration RegExpr
+             | Concat RegExpr RegExpr
+             | Alter RegExpr RegExpr
+                deriving (Eq, Show)
+
+reg1 :: RegExpr 
+reg1 = Concat (Concat (Iteration (Alter (Symbol 'a') (Symbol 'b'))) (Symbol 'a')) (Symbol 'b')
+
+regCon :: RegExpr
+regCon = Concat(Concat (Symbol 'a') (Symbol 'b')) (Symbol 'c')
+
+regAlt :: RegExpr
+regAlt = Alter(Alter (Symbol 'a') (Symbol 'b')) (Symbol 'c')
+
+regIter :: RegExpr
+regIter = Iteration (Symbol 'a')
+
+
+convert2 :: RegExpr -> Automaton
+convert2 Epsilon = (1, "", [], 0, [0])
+convert2 (Symbol a) = (2, [a], [(0, a, 1)], 0, [1])
+convert2 (Iteration r) =
+    let 
+        (count, symbols, transitions, starts, ends) = convert2 r
+        -- add new start state
+        newStart = count
+        -- add epsilon transitions from new start to old start
+        newTransitions = (newStart, 'e', starts) : transitions
+        -- add epsilon transitions from old ends to old start
+        newTransitions' = [(end, 'e', starts) | end <- ends] ++ newTransitions
+    in
+        (count + 1, symbols, newTransitions', newStart, [newStart])
+convert2 (Concat r1 r2) =
+    let
+        (count1, symbols1, transitions1, starts1, ends1) = convert2 r1
+        (count2, symbols2, transitions2, starts2, ends2) = convert2 r2
+        -- add node count to all transitions of r2
+        newTransitions = [(node1 + count1, symbol, node2 + count1) | (node1, symbol, node2) <- transitions1]
+        newStart = starts1 + count1
+        newEnd = [(end + count1) | end <- ends1]
+        -- add epsilon transitions from old ends of r1 to new start of r2
+        newTransitions' = [(end, 'e', starts2) | end <- newEnd] ++ newTransitions ++ transitions2
+    in
+        (count1 + count2, nub(symbols1 ++ symbols2), newTransitions', newStart, ends2)
+convert2 (Alter r1 r2) =
+    let
+        (count1, symbols1, transitions1, starts1, ends1) = convert2 r1
+        (count2, symbols2, transitions2, starts2, ends2) = convert2 r2
+        -- add node count to all transitions of r2
+        newTransitions = [(node1 + count1, symbol, node2 + count1) | (node1, symbol, node2) <- transitions1]
+        newStart = starts1 + count1
+        newEnd = [(end + count1) | end <- ends1]
+        -- add epsilon transitions from new start to old starts of r1 and r2
+        newStart' = count1 + count2 + 1
+        newTransitions' = (newStart', 'e', newStart) : (newStart', 'e', starts2) : newTransitions ++ transitions2
+        newEnd' = ends2 ++ newEnd
+    in
+        (count1 + count2 + 1, nub(symbols1 ++ symbols2), newTransitions', newStart', newEnd')

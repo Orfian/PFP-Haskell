@@ -95,10 +95,10 @@ reg1 :: RegExpr
 reg1 = Concat (Concat (Iteration (Alter (Symbol 'a') (Symbol 'b'))) (Symbol 'a')) (Symbol 'b')
 
 regCon :: RegExpr
-regCon = Concat(Concat (Symbol 'a') (Symbol 'b')) (Symbol 'c')
+regCon = Concat(Concat(Concat (Symbol 'a') (Symbol 'b')) (Symbol 'c')) (Symbol 'd')
 
 regAlt :: RegExpr
-regAlt = Alter(Alter (Symbol 'a') (Symbol 'b')) (Symbol 'c')
+regAlt = Alter(Alter(Alter (Symbol 'a') (Symbol 'b')) (Symbol 'c')) (Symbol 'd')
 
 regIter :: RegExpr
 regIter = Iteration (Symbol 'a')
@@ -123,24 +123,24 @@ convert2 (Concat r1 r2) =
         (count1, symbols1, transitions1, starts1, ends1) = convert2 r1
         (count2, symbols2, transitions2, starts2, ends2) = convert2 r2
         -- add node count to all transitions of r2
-        newTransitions = [(node1 + count1, symbol, node2 + count1) | (node1, symbol, node2) <- transitions1]
-        newStart = starts1 + count1
-        newEnd = [(end + count1) | end <- ends1]
+        newTransitions = [(node1 + count1, symbol, node2 + count1) | (node1, symbol, node2) <- transitions2]
+        newStart = starts2 + count1
+        newEnd = [end + count1 | end <- ends2]
         -- add epsilon transitions from old ends of r1 to new start of r2
-        newTransitions' = [(end, 'e', starts2) | end <- newEnd] ++ newTransitions ++ transitions2
+        newTransitions' = [(end, 'e', starts1) | end <- newEnd] ++ newTransitions ++ transitions1
     in
-        (count1 + count2, nub(symbols1 ++ symbols2), newTransitions', newStart, ends2)
+        (count1 + count2, nub(symbols1 ++ symbols2), newTransitions', newStart, ends1)
 convert2 (Alter r1 r2) =
     let
         (count1, symbols1, transitions1, starts1, ends1) = convert2 r1
         (count2, symbols2, transitions2, starts2, ends2) = convert2 r2
         -- add node count to all transitions of r2
-        newTransitions = [(node1 + count1, symbol, node2 + count1) | (node1, symbol, node2) <- transitions1]
-        newStart = starts1 + count1
-        newEnd = [(end + count1) | end <- ends1]
+        newTransitions = [(node1 + count1, symbol, node2 + count1) | (node1, symbol, node2) <- transitions2]
+        newStart = starts2 + count1
+        newEnd = [end + count1 | end <- ends2]
         -- add epsilon transitions from new start to old starts of r1 and r2
-        newStart' = count1 + count2 + 1
-        newTransitions' = (newStart', 'e', newStart) : (newStart', 'e', starts2) : newTransitions ++ transitions2
-        newEnd' = ends2 ++ newEnd
+        newStart' = count1 + count2
+        newTransitions' = (newStart', 'e', newStart) : (newStart', 'e', starts1) : newTransitions ++ transitions1
+        newEnd' = ends1 ++ newEnd
     in
         (count1 + count2 + 1, nub(symbols1 ++ symbols2), newTransitions', newStart', newEnd')

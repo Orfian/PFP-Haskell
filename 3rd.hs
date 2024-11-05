@@ -61,11 +61,17 @@ setElementAt index newValue (Branch (Triple left middle right)) =
             _ -> error "Index out of range in ternary tree"
     in Branch (Triple newLeft newMiddle newRight)
 
+
+
+
+
+
+
 main :: IO ()
 main = do
     -- Create an array of size 9 with a default value of 0
     let array = createArray 9 0
-    print $ enumerate array  -- Prints the initial array values
+    print $ enumerate array
 
     -- Get element at index 5
     print $ getElementAt 5 array

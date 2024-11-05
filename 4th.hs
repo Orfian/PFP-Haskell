@@ -6,11 +6,11 @@ import Data.STRef
 
 quickSort :: Array Int Int -> Array Int Int
 quickSort arr = runArrayST $ do
-    stArr <- thaw arr -- Convert immutable array to mutable STArray
+    stArr <- thaw arr
     quickSortST stArr 0 (n - 1)
     return stArr
   where
-    n = snd (bounds arr) + 1  -- Array length
+    n = snd (bounds arr) + 1
 
 -- Core quicksort algorithm for mutable STArray
 quickSortST :: STArray s Int Int -> Int -> Int -> ST s ()

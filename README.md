@@ -1,4 +1,4 @@
-### README for PFP Repository  
+### PFP Repository  
 
 This repository contains my assignments for the PFP (Practical Functional Programming) course. Below is a brief overview of the completed assignments:  
 

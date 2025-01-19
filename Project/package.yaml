@@ -30,6 +30,7 @@ dependencies:
 - aeson
 - wai
 - wai-extra
+- wai-middleware-static
 - bytestring
 
 ghc-options:

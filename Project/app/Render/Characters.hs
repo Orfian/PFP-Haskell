@@ -20,12 +20,13 @@ addCharacterRoute :: Connection -> ScottyM ()
 addCharacterRoute conn = do
     -- Render the characters and the form to add a new character
     get "/characters" $ do
-        -- Fetch characters from the database
+        -- Fetch characters and players from the database
         characters <- liftIO $ fetchCharacters conn
+        players <- liftIO $ fetchPlayers conn
         
         -- Render the characters in an HTML table and include the form
         html $ renderCharacterTable characters
-            `TL.append` renderAddCharacterForm
+            `TL.append` renderAddCharacterForm players
 
     -- Handle form submission to add a new character
     post "/addCharacter" $ do
@@ -59,12 +60,27 @@ addCharacterRoute conn = do
       -- Redirect to /characters
       redirect "/characters"
 
+    -- Handle character deletion
+    post "/deleteCharacter" $ do
+      req <- request
+      (paramsRaw, _) <- liftIO $ parseRequestBody lbsBackEnd req
+      let params = map (\(k, v) -> (TE.decodeUtf8 k, TE.decodeUtf8 v)) paramsRaw
+      let lookupParam key = maybe (error $ "Missing param: " ++ T.unpack key) id (lookup key params)
+      let characterId = read $ T.unpack $ lookupParam "character_id" :: Int32
+
+      -- Delete character from the database
+      liftIO $ removeCharacter conn characterId
+
+      -- Redirect back to the characters page
+      redirect "/characters"
+
 -- Function to render the characters in an HTML table
 renderCharacterTable :: [Character] -> TL.Text
 renderCharacterTable characters = 
     let tableRows = map renderCharacterRow characters
     in TL.concat
-       [ TL.pack "<h1>List of Characters</h1>"
+       [ TL.pack "<link rel='stylesheet' type='text/css' href='/style.css'>"
+       , TL.pack "<h1>List of Characters</h1>"
        , TL.pack "<table border=\"1\">"
        , TL.pack "<thead>"
        , TL.pack "<tr>"
@@ -74,6 +90,7 @@ renderCharacterTable characters =
        , TL.pack "<th>Race</th>"
        , TL.pack "<th>Level</th>"
        , TL.pack "<th>Player ID</th>"
+       , TL.pack "<th>Delete</th>"
        , TL.pack "</tr>"
        , TL.pack "</thead>"
        , TL.pack "<tbody>"
@@ -95,13 +112,20 @@ renderCharacterRow character =
        , "<td>" `TL.append` TL.pack (show race) `TL.append` "</td>"
        , "<td>" `TL.append` TL.pack (show level) `TL.append` "</td>"
        , "<td>" `TL.append` TL.pack (show playerId) `TL.append` "</td>"
+       , "<td>"
+       , "<form action=\"/deleteCharacter\" method=\"POST\" class=\"delete-form\">"
+       , "<input type=\"hidden\" name=\"character_id\" value=\"" `TL.append` TL.pack (show cid) `TL.append` "\">"
+       , "<button type=\"submit\" class=\"delete-button\">X</button>"
+       , "</form>"
+       , "</td>"
        , "</tr>"
        ]
 
 -- Function to render the form for adding a new character
-renderAddCharacterForm :: TL.Text
-renderAddCharacterForm = 
-    TL.concat
+renderAddCharacterForm :: [Player] -> TL.Text
+renderAddCharacterForm players = 
+    let playerOptions = map renderPlayerOption players
+    in TL.concat
         [ TL.pack "<h1>Add New Character</h1>"
         , TL.pack "<form action=\"/addCharacter\" method=\"POST\">"
         , TL.pack "<label for=\"name\">Name:</label>"
@@ -112,8 +136,20 @@ renderAddCharacterForm =
         , TL.pack "<input type=\"text\" id=\"race\" name=\"race\" required><br><br>"
         , TL.pack "<label for=\"level\">Level:</label>"
         , TL.pack "<input type=\"number\" id=\"level\" name=\"level\" required><br><br>"
-        , TL.pack "<label for=\"player_id\">Player ID:</label>"
-        , TL.pack "<input type=\"number\" id=\"player_id\" name=\"player_id\" required><br><br>"
+        , TL.pack "<label for=\"player_id\">Player:</label>"
+        , TL.pack "<select id=\"player_id\" name=\"player_id\" required>"
+        , TL.concat playerOptions
+        , TL.pack "</select><br><br>"
         , TL.pack "<button type=\"submit\">Submit</button>"
         , TL.pack "</form>"
         ]
+
+-- Function to render a single player option for the select dropdown
+renderPlayerOption :: Player -> TL.Text
+renderPlayerOption player = 
+    let Player { playerId = pid, playerName = name } = player
+    in TL.concat
+       [ "<option value=\"" `TL.append` TL.pack (show pid) `TL.append` "\">"
+       , TL.pack (show name)
+       , "</option>"
+       ]

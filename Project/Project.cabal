@@ -45,6 +45,7 @@ library
     , text
     , wai
     , wai-extra
+    , wai-middleware-static
   default-language: Haskell2010
 
 executable Project-exe
@@ -52,6 +53,7 @@ executable Project-exe
   other-modules:
       Database
       Render.Characters
+      Render.Players
       Paths_Project
   autogen-modules:
       Paths_Project
@@ -71,6 +73,7 @@ executable Project-exe
     , text
     , wai
     , wai-extra
+    , wai-middleware-static
   default-language: Haskell2010
 
 test-suite Project-test
@@ -96,4 +99,5 @@ test-suite Project-test
     , text
     , wai
     , wai-extra
+    , wai-middleware-static
   default-language: Haskell2010
